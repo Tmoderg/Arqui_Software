@@ -1,63 +1,75 @@
-from flask import Flask, request
-import requests
+import socket
 import psycopg2
+import sys
 
-app = Flask(__name__)
+# Create a TCP/IP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-conn = psycopg2.connect(
-    database="opticommerce",
-    user="postgres",
-    password="7541",
-    host="localhost",
-    port="5432"
-)
-cur = conn.cursor()
+# Connect the socket to the port where the bus is listening
+bus_address = ('localhost', 5000)
+print('connecting to {} port {}'.format(*bus_address))
+sock.connect(bus_address)
 
-@app.route('/dbs07', methods=['POST'])
-def database_access():
-    data = request.get_data(as_text=True)
-    print(f"Received data: {data}")
-    operation = data[5:10].strip()
-    query = data[10:]
-    print(f"Operation: {operation}, Query: {query}")
-
+def execute_query(query):
     try:
-        if operation == "Query":
-            cur.execute(query)
-            result = cur.fetchall()
-            response = "OK"
-            response_details = str(result)
-        elif operation in ["Insert", "Updat", "Delet"]:
-            cur.execute(query)
-            conn.commit()
-            response = "OK"
-            response_details = ""
+        connection = psycopg2.connect(
+            database="opticommerce",
+            user="postgres",
+            password="7541",
+            host="localhost",
+            port="5432"
+        )
+        cursor = connection.cursor()
+        if query.strip().upper().startswith("SELECT"):
+            cursor.execute(query)
+            result = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            if result:
+                return '|'.join([','.join(map(str, row)) for row in result])
+            else:
+                return "No data found"
         else:
-            response = "NK"
-            response_details = ""
-    except Exception as e:
-        response = "NK"
-        response_details = str(e)
+            cursor.execute(query)
+            connection.commit()
+            cursor.close()
+            connection.close()
+            return "Query executed successfully"
+    except (Exception, psycopg2.Error) as error:
+        return str(error)
 
-    response_message = f"{len(response + response_details):05}dbs07{response}{response_details}"
-    print(f"Response: {response_message}")
-    return response_message, 200
+def handle_request(request):
+    query = request
+    print(f"Query: {query}")
+    if query.startswith("INSERT") or query.startswith("UPDATE") or query.startswith("DELETE") or query.startswith("SELECT"):
+        return execute_query(query)
+    else:
+        return "DBS07NKInvalid query type"
 
-@app.route('/sinit', methods=['POST'])
-def sinit():
-    response_message = "00005dbs07OK"
-    print(f"Service Initialization: {response_message}")
-    return response_message, 200
+try:
+    message = b'00010sinitDBS07'
+    print('sending {!r}'.format(message))
+    sock.sendall(message)
+    sinit = 1
+    while True:
+        print("Waiting for transaction")
+        amount_received = 0
+        amount_expected = int(sock.recv(5))
 
-def register_service():
-    message = "00005sinitdbs07"
-    try:
-        response = requests.post('http://localhost:5000/sinit', data=message)
-        print(f"sinit response: {response.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error registering service: {e}")
-
-if __name__ == '__main__':
-    print("Starting DBS07 service...")
-    register_service()
-    app.run(host='0.0.0.0', port=5003)
+        while amount_received < amount_expected:
+            data = sock.recv(amount_expected - amount_received)
+            amount_received += len(data)
+        print("Processing ...")
+        print('received {!r}'.format(data))
+        if sinit == 1:
+            sinit = 0
+            print('Received sinit answer')
+        else:
+            print("Send answer")
+            response = handle_request(data.decode()[5:])
+            response_message = f"{len(response):05}DBS07OK{response}".encode()
+            print('sending {!r}'.format(response_message))
+            sock.sendall(response_message)
+finally:
+    print('closing socket')
+    sock.close()
