@@ -43,7 +43,7 @@ def handle_request(data):
         return f"PRD02OK,{db_response}"
     elif action == "DELPR":
         product_id = payload.strip()
-        query = f"DELETE FROM Producto WHERE id_producto = {product_id}"
+        query = f"UPDATE Producto SET cantidad = 0 WHERE id_producto = {product_id}"
         db_response = send_message_to_dbs07(f"{len(query):05}DBS07{query}".encode())
         return f"PRD02OK,{db_response}"
     elif action == "UPDPR":

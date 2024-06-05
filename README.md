@@ -1,11 +1,22 @@
 # Arqui_Software
 
-# Servicios y clientes listos
+# Servicios y sus requerimientos
+USR01 -> 1, 7
+PRD02 -> 4, 5, 6, 8, 10
+CMP03 -> 3, 9, 11
+DSC04 -> 2
+NOT05 -> 12
+SRC06 -> 6, 8
+DBS07 -> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 
-- usr01
-- prd02
-- cliente_normal (con acciones de usr01 y prd02)
-- cliente_administrador (con acciones de usr01 y prd02)
+# Requerimientos listos
+USR01 -> 1, 7
+PRD02 -> 4, 5, 6, 8, 10
+CMP03 -> 
+DSC04 -> 
+NOT05 -> 
+SRC06 -> 
+DBS07 -> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 
 Comandos para Probar los Clientes
 Ejecuta el bus de servicios en Docker:
