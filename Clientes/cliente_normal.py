@@ -31,13 +31,15 @@ def send_message(service, action, data):
     return response.decode()
 
 def validate_rut(rut):
-    return re.match(r'^\d{1,8}-[kK\d]{1}$', rut) is not None
-
-def validate_name(name):
-    return re.match(r'^[A-Za-záéíóúÁÉÍÓÚñÑ\s]{1,20}$', name) is not None
+    pattern = r'^\d{7,8}-[kK\d]$'
+    return re.match(pattern, rut)
 
 def validate_email(email):
-    return re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,30}$', email) is not None
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email)
+    
+def validate_name(name):
+    return re.match(r'^[A-Za-záéíóúÁÉÍÓÚñÑ\s]{1,20}$', name) is not None
 
 def validate_password(password):
     return re.match(r'^.{1,20}$', password) is not None
